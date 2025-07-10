@@ -1,0 +1,46 @@
+services:
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: supervia-payment-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      # --- Sécurité ---
+      - JWT_SECRET=${JWT_SECRET}
+      # --- URLs & CORS ---
+      - API_URL=${API_URL:-http://localhost:3006}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:4000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4000}
+      # --- Stripe ---
+      - STRIPE_API_KEY=${STRIPE_API_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      # --- Services Dépendants ---
+      - DB_SERVICE_URL=${DB_SERVICE_URL:-http://supervia-db-service:3002}
+      - NOTIFICATION_SERVICE_URL=${NOTIFICATION_SERVICE_URL:-http://supervia-notification-service:3005}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://supervia-auth-service:3001/api/v1}
+    volumes:
+      - payment-logs:/app/logs
+    networks:
+      - supervia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  supervia-network:
+    external: true
+    name: infra_supervia-network # Assurez-vous que c'est le nom correct du réseau partagé
+
+volumes:
+  payment-logs: 
