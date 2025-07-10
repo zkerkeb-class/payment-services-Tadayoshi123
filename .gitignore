@@ -1,0 +1,55 @@
+# payment-services-Tadayoshi123/.gitignore
+
+# ===================================
+# 📂 DOSSIERS DE DÉVELOPPEMENT
+# ===================================
+node_modules/
+coverage/
+.nyc_output/
+logs/
+temp/
+tmp/
+
+# ===================================
+# 📄 FICHIERS DE CONFIGURATION
+# ===================================
+.env
+.env.*
+!.env.example
+nodemon.json
+
+# ===================================
+# 🔧 OUTILS DE DÉVELOPPEMENT
+# ===================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===================================
+# 📊 FICHIERS DE BUILD ET CACHE
+# ===================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.cache/
+dist/
+build/
+
+# ===================================
+# 🔐 FICHIERS SENSIBLES
+# ===================================
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
+# ===================================
+# 📦 FICHIERS OS
+# ===================================
+.DS_Store
+Thumbs.db
+desktop.ini 

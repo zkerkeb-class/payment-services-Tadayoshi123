@@ -1,0 +1,437 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SupervIA - Payment Service API",
+    "version": "1.0.0",
+    "description": "Ce service gère les abonnements et les paiements via Stripe. Il fournit des endpoints pour créer des sessions de paiement, gérer les abonnements, et consulter le statut des paiements. Sécurisé par JWT.",
+    "contact": {
+      "name": "Support Technique SupervIA",
+      "email": "support@supervia.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3006",
+      "description": "Serveur de développement local"
+    },
+    {
+      "url": "https://api.supervia.com/payments",
+      "description": "Serveur de production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token d'accès JWT (RS256) obtenu auprès du service d'authentification, contenant l'identifiant de l'utilisateur."
+      }
+    },
+    "schemas": {
+      "CheckoutSessionRequest": {
+        "type": "object",
+        "required": [
+          "priceId",
+          "successUrl",
+          "cancelUrl"
+        ],
+        "properties": {
+          "priceId": {
+            "type": "string",
+            "description": "L'ID du plan tarifaire Stripe (ex: price_12345)"
+          },
+          "successUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de redirection en cas de succès"
+          },
+          "cancelUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de redirection en cas d'annulation"
+          }
+        }
+      },
+      "PortalSessionRequest": {
+        "type": "object",
+        "required": [
+          "returnUrl"
+        ],
+        "properties": {
+          "returnUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de redirection après la session du portail"
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "example": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string"
+            },
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "type": "object",
+              "nullable": true
+            }
+          }
+        }
+      }
+    },
+    "CheckoutSessionRequest": {
+      "type": "object",
+      "required": [
+        "priceId",
+        "successUrl",
+        "cancelUrl"
+      ],
+      "properties": {
+        "priceId": {
+          "type": "string",
+          "description": "L'ID du plan tarifaire Stripe (ex: price_12345)",
+          "example": "price_1P6JSKRxkxM2gVjTwzZqF9aA"
+        },
+        "successUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL de redirection en cas de succès",
+          "example": "http://localhost:4000/payment/success"
+        },
+        "cancelUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL de redirection en cas d'annulation",
+          "example": "http://localhost:4000/payment/cancel"
+        }
+      }
+    },
+    "PortalSessionRequest": {
+      "type": "object",
+      "required": [
+        "returnUrl"
+      ],
+      "properties": {
+        "returnUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL de redirection après la session du portail",
+          "example": "http://localhost:4000/dashboard/settings"
+        }
+      }
+    },
+    "SubscriptionResponse": {
+      "type": "object",
+      "properties": {
+        "subscription": {
+          "type": "object",
+          "nullable": true,
+          "description": "L'objet abonnement Stripe ou null si aucun abonnement actif.",
+          "example": {
+            "id": "sub_1P6JSLRxkxM2gVjT7Nqf8c3T",
+            "status": "active"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "summary": "Vérifie l'état de santé du service de paiement",
+        "tags": [
+          "Health"
+        ],
+        "description": "Renvoie un statut simple indiquant que le service est en cours d'exécution.",
+        "responses": {
+          "200": {
+            "description": "Le service est sain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "UP"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Payment service is running"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/checkout-sessions": {
+      "post": {
+        "summary": "Crée une session de paiement Stripe",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session créée avec succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Requête invalide (paramètres manquants).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non autorisé (token invalide ou manquant).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Utilisateur non trouvé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/subscription": {
+      "get": {
+        "summary": "Récupère l'abonnement actif de l'utilisateur",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statut de l'abonnement récupéré.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non autorisé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/portal-sessions": {
+      "post": {
+        "summary": "Crée une session de portail client Stripe",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortalSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session de portail créée avec succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Non autorisé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Utilisateur non trouvé ou n'a pas de client Stripe associé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/stripe": {
+      "post": {
+        "summary": "Gère les événements webhook entrants de Stripe",
+        "tags": [
+          "Webhooks"
+        ],
+        "description": "Endpoint public qui écoute les événements envoyés par Stripe.\nLa sécurité est assurée par la vérification de la signature HMAC-SHA256 fournie dans l'en-tête `stripe-signature`.\n**Important** : Ce endpoint doit recevoir le corps de la requête brut (raw JSON).\n",
+        "requestBody": {
+          "description": "Charge utile de l'événement Stripe. Le contenu exact varie en fonction du type d'événement.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "evt_1P6JTnRxkxM2gVjTDvA39xWc"
+                  },
+                  "object": {
+                    "type": "string",
+                    "example": "event"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "checkout.session.completed"
+                  },
+                  "data": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Événement reçu et traité avec succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "received": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erreur, par exemple une signature de webhook invalide.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Payments",
+      "description": "Gestion des paiements et abonnements via Stripe."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Endpoints pour recevoir les événements de services externes (Stripe)."
+    }
+  ]
+}
